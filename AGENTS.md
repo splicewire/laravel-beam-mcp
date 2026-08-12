@@ -6,6 +6,13 @@ discovery, self-described into beam-core's `ManifestIndex`) that a host MCP serv
 `Splicewire\Tower\Mcp\Servers\SplicewireServer`) composes at boot, replacing a hand-maintained
 tool-class list.
 
+## Particle doctrine
+
+Before adding or changing any I/O surface (HTTP route, MCP tool, Inertia page, command), read
+`~/Workspaces/splicewire-beam-runbook/references/particle-doctrine.md` — the
+declare-every-boundary-crossing-shape invariant, its three declaration sites, the four exceptions,
+and `splicewire:beam:manifests --json` for locating the registry behind a surface.
+
 ## Vendored family-package conventions
 
 Any repo that vendors another family repo's code (composer `vendor/<vendor>/<pkg>/`, npm
