@@ -3,10 +3,12 @@
 namespace Splicewire\Beam\Mcp;
 
 use Illuminate\Support\ServiceProvider;
+use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Manifest\ManifestArity;
 use Splicewire\Beam\Manifest\ManifestDescriptor;
 use Splicewire\Beam\Manifest\ManifestIndex;
 use Splicewire\Beam\Manifest\ManifestSeam;
+use Splicewire\Beam\Mcp\Surgeon\McpToolShapeAudit;
 
 /**
  * The MCP-arm provider: any beam-tier package exposes an MCP tool by annotating the class
@@ -38,6 +40,33 @@ class BeamMcpServiceProvider extends ServiceProvider
 
         $this->discoverMcpTools();
         $this->describeMcpManifest();
+        $this->registerDoctorAudits();
+    }
+
+    /**
+     * Register the MCP leg of the negative-space detector DOWN into beam-core's doctor manifest, from this
+     * package's own provider — the acyclic direction beam-core relies on (it iterates whatever registered and
+     * never learns a consumer's name).
+     *
+     * Advisory, matching the HTTP leg: the undeclared MCP surface is a burn-down, and a backlog that fails the
+     * build is just a blocked build.
+     *
+     * Guarded on the manifest class existing so this package still boots against a beam-core that predates it.
+     */
+    protected function registerDoctorAudits(): void
+    {
+        if (! class_exists(BeamDoctorManifest::class)) {
+            return;
+        }
+
+        $this->app->bind(McpToolShapeAudit::class, fn ($app) => new McpToolShapeAudit(
+            $app->make(McpToolManifest::class),
+        ));
+
+        $this->app->make(BeamDoctorManifest::class)->register(
+            'splicewire/laravel-beam-mcp',
+            McpToolShapeAudit::class,
+        );
     }
 
     /**
