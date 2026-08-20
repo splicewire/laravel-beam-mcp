@@ -2,13 +2,17 @@
 
 namespace Splicewire\Beam\Mcp;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Manifest\ManifestArity;
 use Splicewire\Beam\Manifest\ManifestDescriptor;
 use Splicewire\Beam\Manifest\ManifestIndex;
 use Splicewire\Beam\Manifest\ManifestSeam;
+use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
+use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
 use Splicewire\Beam\Mcp\Surgeon\McpToolShapeAudit;
+use Splicewire\Beam\Seed\BeamSeedManifest;
 
 /**
  * The MCP-arm provider: any beam-tier package exposes an MCP tool by annotating the class
@@ -36,11 +40,65 @@ class BeamMcpServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../config/beam/mcp.php' => $this->app->configPath('beam/mcp.php'),
             ], 'beam-mcp-config');
+
+            // The docs page stub. Optionally published — publishing is how a host rewords what a fresh
+            // install seeds; not publishing is how it gets the default. A stub is not a rendered page,
+            // which is the thing no beam package ships.
+            $this->publishes([
+                __DIR__.'/../stubs/docs' => resource_path('beam-mcp/docs'),
+            ], 'beam-mcp-docs');
         }
+
+        $this->mountManifestRoute();
+        $this->registerDocsSeed();
 
         $this->discoverMcpTools();
         $this->describeMcpManifest();
         $this->registerDoctorAudits();
+    }
+
+    /**
+     * Mount the advertised-catalog endpoint (ADR-0210 §3). The package mounts this ITSELF, unlike the
+     * beam-ux renderer which is host-mounted: ADR-0116 guards against a package claiming UNMATCHED urls,
+     * not against one owning a fixed, namespaced, read-only route of its own. Requiring a host to
+     * hand-mount one route per installed contributor would defeat the install-and-it-appears property
+     * the contribution shape exists for.
+     *
+     * No middleware: the advertised catalog is the buyer-facing superset, publicly cacheable by design
+     * (§4). A host that wants it behind auth sets `manifest_uri` to null and mounts its own.
+     */
+    protected function mountManifestRoute(): void
+    {
+        $uri = config('beam.mcp.manifest_uri', 'beam/mcp/manifest.json');
+
+        if ($uri === null || $uri === '') {
+            return;
+        }
+
+        Route::get($uri, McpManifestController::class)->name('beam.mcp.manifest');
+    }
+
+    /**
+     * Register beam-mcp's ONE seed step DOWN into beam-core's manifest — the whole of what ADR-0210 §1
+     * means by a contribution registering itself. Order 30, after beam-ux's docs root at 20, because the
+     * page hangs off it.
+     *
+     * Registered UNCONDITIONALLY and guarded inside the seeder instead: the manifest takes a
+     * class-string, so nothing loads until the seeder runs, and a headless host gets a reported skip
+     * rather than a missing-class fatal (§6). Guarded here only on the manifest existing, so this
+     * package still boots against a beam-core that predates it.
+     */
+    protected function registerDocsSeed(): void
+    {
+        if (! class_exists(BeamSeedManifest::class) || ! $this->app->bound(BeamSeedManifest::class)) {
+            return;
+        }
+
+        $this->app->make(BeamSeedManifest::class)->register(
+            package: 'splicewire/laravel-beam-mcp',
+            seederClass: McpDocsSeeder::class,
+            order: 30,
+        );
     }
 
     /**

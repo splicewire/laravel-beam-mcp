@@ -6,6 +6,7 @@ use Orchestra\Testbench\TestCase as Orchestra;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Manifest\ManifestIndex;
 use Splicewire\Beam\Mcp\BeamMcpServiceProvider;
+use Splicewire\Beam\Seed\BeamSeedManifest;
 
 abstract class TestCase extends Orchestra
 {
@@ -25,6 +26,9 @@ abstract class TestCase extends Orchestra
         // provider registers its audit into it at boot. Without the singleton here, that registration would
         // land on a throwaway instance and be invisible to any assertion.
         $app->singleton(BeamDoctorManifest::class);
+        // And the seed manifest: this package registers its ONE docs seed step (ADR-0210 §1) into it at
+        // boot, and without the singleton that registration would land on a throwaway instance.
+        $app->singleton(BeamSeedManifest::class);
 
         return [
             BeamMcpServiceProvider::class,
