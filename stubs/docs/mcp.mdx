@@ -12,14 +12,19 @@ first-class access to this host's capabilities. Purpose-built tools, not an auto
 ## Endpoint
 
 The server speaks the MCP streamable-HTTP transport. Point an OAuth-capable client straight at the
-endpoint URL; clients without native remote-MCP support bridge through `mcp-remote`:
+endpoint URL; clients without native remote-MCP support bridge through `mcp-remote`.
+
+The URL below is this host's **conventional** MCP mount. `splicewire/laravel-beam-mcp` ships the tool
+manifest, not the transport — the server route itself is mounted by the host through `laravel/mcp` — so
+if you mounted it somewhere else, correct the URL here. This page is a row this site owns; the edit
+sticks.
 
 ```json
 {
   "mcpServers": {
     "beam": {
       "command": "npx",
-      "args": ["mcp-remote", "https://example.test/mcp"]
+      "args": ["mcp-remote", "{{ endpoint_url }}"]
     }
   }
 }

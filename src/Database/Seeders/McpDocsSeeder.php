@@ -136,11 +136,12 @@ class McpDocsSeeder extends Seeder
             return null;
         }
 
-        $raw = str_replace(
-            ['{{ manifest_url }}', '{{manifest_url}}'],
-            $this->manifestUrl(),
-            (string) file_get_contents($path),
-        );
+        $raw = strtr((string) file_get_contents($path), [
+            '{{ manifest_url }}' => $this->manifestUrl(),
+            '{{manifest_url}}' => $this->manifestUrl(),
+            '{{ endpoint_url }}' => $this->endpointUrl(),
+            '{{endpoint_url}}' => $this->endpointUrl(),
+        ]);
 
         return ['columns' => $this->columns($raw), 'body' => $raw];
     }
@@ -177,6 +178,26 @@ class McpDocsSeeder extends Seeder
         }
 
         return $out;
+    }
+
+    /**
+     * The MCP transport endpoint a client is told to point at.
+     *
+     * This package mounts the tool MANIFEST, never the transport — the server route is the host's, via
+     * `laravel/mcp` — so there is no route name here to resolve and the honest answer is the
+     * conventional mount on this host's own `app.url`. The page says as much in prose, and it is a row
+     * the site owns, so a host that mounted elsewhere edits it once.
+     *
+     * It is derived rather than literal because the stub used to ship `https://example.test/mcp` to
+     * every install — a page telling every reader to point their MCP client at a placeholder domain.
+     * Same shape as ADR-0211 §6's hardcoded artifact path: a literal that is right nowhere.
+     */
+    private function endpointUrl(): string
+    {
+        $base = rtrim((string) config('app.url'), '/');
+        $path = '/'.ltrim((string) config('beam.mcp.endpoint_uri', 'mcp'), '/');
+
+        return $base.$path;
     }
 
     private function manifestUrl(): string
