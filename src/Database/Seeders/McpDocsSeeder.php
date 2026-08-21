@@ -80,20 +80,37 @@ class McpDocsSeeder extends Seeder
      */
     private function create(string $entry, object $parent, array $stub): void
     {
-        $page = $entry::create(array_merge([
-            'slug' => 'docs-mcp',
-            'type' => 'page',
-            'format' => 'mdx',
-            'parent_id' => $parent->getKey(),
-        ], $stub['columns']));
+        // Transactional, and BORN PUBLISHED — the two properties beam-ux's `SeedsEntries` carries, kept
+        // in step here by hand. This is the duplication the class docblock priced in: the no-beam-ux-
+        // dependency rule means this seeder cannot use the trait, so a fix to seeding semantics has to
+        // be made twice. Both were found on `splicewire/www` (beam-docs-satellite ticket 07):
+        //
+        //  - Without the transaction, a throw between the row and its body leaves a BODYLESS row, and
+        //    the create-never-update check above then makes it permanent — the retry is a silent no-op.
+        //  - Without the marking, `WorkflowMarkingPublishGate` 404s the page on every host that binds a
+        //    `page` workflow, so a contributed page that resolves and compiles correctly is still
+        //    invisible. `$stub['columns']` merges over this, so frontmatter can still say otherwise.
+        $page = \Illuminate\Support\Facades\DB::transaction(function () use ($entry, $parent, $stub) {
+            // The marking comes from beam-ux's own guarded helper (it is a no-op where the optional
+            // `workflow_marking` column is absent), resolved off the class-string like everything else
+            // here so this file still imports nothing from beam-ux.
+            $page = $entry::create(array_merge([
+                'slug' => 'docs-mcp',
+                'type' => 'page',
+                'format' => 'mdx',
+                'parent_id' => $parent->getKey(),
+            ], $entry::publishedMarkingAttributes(), $stub['columns']));
 
-        $drivers = app(self::DRIVERS);
-        $written = $drivers->resolve($page)->write('', $page->codec()->encode($stub['body']), $page->namespace);
+            $drivers = app(self::DRIVERS);
+            $written = $drivers->resolve($page)->write('', $page->codec()->encode($stub['body']), $page->namespace);
 
-        if ($written->key !== '') {
-            $page->particle_id = $written->key;
-            $page->save();
-        }
+            if ($written->key !== '') {
+                $page->particle_id = $written->key;
+                $page->save();
+            }
+
+            return $page;
+        });
 
         try {
             app(self::COMPILE)->forEntry($page->refresh(), $stub['body'], force: true);
