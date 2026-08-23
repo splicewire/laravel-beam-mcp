@@ -5,10 +5,6 @@ namespace Splicewire\Beam\Mcp;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
-use Splicewire\Beam\Manifest\ManifestArity;
-use Splicewire\Beam\Manifest\ManifestDescriptor;
-use Splicewire\Beam\Manifest\ManifestIndex;
-use Splicewire\Beam\Manifest\ManifestSeam;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
 use Splicewire\Beam\Mcp\Surgeon\McpToolShapeAudit;
@@ -53,7 +49,6 @@ class BeamMcpServiceProvider extends ServiceProvider
         $this->registerDocsSeed();
 
         $this->discoverMcpTools();
-        $this->describeMcpManifest();
         $this->registerDoctorAudits();
     }
 
@@ -144,27 +139,4 @@ class BeamMcpServiceProvider extends ServiceProvider
         $this->app->make(McpToolManifest::class)->discover($classes, $paths);
     }
 
-    /**
-     * Describe {@see McpToolManifest} into the index of indexes (beam-manifest-index). Owner
-     * self-registration, down into beam-core's {@see ManifestIndex} — same direction as the
-     * install/doctor manifests, topology-safe (beam-mcp depends DOWN on laravel-beam).
-     *
-     * Arity is RUN-ALL, not pick-one like the other attribute-scan registries
-     * (AdminResourceRegistry/ParticleOperationRegistry/RealmRegistry all resolve one entry by
-     * key): a consuming MCP server wants EVERY registered group at `groups()` time, not one
-     * group by name — the read shape genuinely differs, so the label does too.
-     */
-    protected function describeMcpManifest(): void
-    {
-        $this->app->make(ManifestIndex::class)->describe(new ManifestDescriptor(
-            name: 'McpToolManifest',
-            of: 'MCP tool classes grouped by mount group, exposed to a host MCP server\'s groups()',
-            seam: ManifestSeam::AttributeScan,
-            arity: ManifestArity::RunAll,
-            registerHint: 'annotate a Tool class #[McpTool(\'group\')] (or add its dir to beam.mcp.discover_paths)',
-            where: '#[McpTool] → '.McpToolManifest::class,
-            package: 'splicewire/laravel-beam-mcp',
-            order: 16,
-        ));
-    }
 }

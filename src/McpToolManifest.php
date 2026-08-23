@@ -2,6 +2,10 @@
 
 namespace Splicewire\Beam\Mcp;
 
+use Rushing\Popcorn\Registries\IsRegistry;
+use Rushing\Popcorn\Registries\OnDuplicate;
+use Rushing\Popcorn\Registries\RegistryArity;
+
 use InvalidArgumentException;
 use ReflectionClass;
 use Rushing\McpRegistry\ToolGroup;
@@ -18,6 +22,15 @@ use Splicewire\Beam\Mcp\Attributes\McpTool;
  * `registerClass()` idempotent (a re-scanned/re-registered class never duplicates), matching
  * `AdminResourceRegistry`'s "re-scanning overwrites/dedupes, never duplicates" contract.
  */
+#[IsRegistry(
+    root: 'beam.mcp.tools',
+    of: 'MCP tool classes grouped by mount group, exposed to a host MCP server\'s groups()',
+    arity: RegistryArity::RunAll,
+    onDuplicate: OnDuplicate::Admit,
+    note: 'Filled by an #[McpTool] attribute scan. Admit because a group legitimately holds many tools — '
+        .'the key is the GROUP, not the tool.',
+    order: 16,
+)]
 class McpToolManifest
 {
     /** @var array<string, list<class-string>> */

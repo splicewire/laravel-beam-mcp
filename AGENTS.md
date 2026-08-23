@@ -11,7 +11,7 @@ tool-class list.
 Before adding or changing any I/O surface (HTTP route, MCP tool, Inertia page, command), read
 `splicewire/laravel-beam`'s `docs/agents/particle-doctrine.md` — the
 declare-every-boundary-crossing-shape invariant, its three declaration sites, the four exceptions,
-and `splicewire:beam:manifests --json` for locating the registry behind a surface.
+and `popcorn:registries --json` for locating the registry behind a surface.
 
 ## Vendored family-package conventions
 

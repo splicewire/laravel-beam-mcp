@@ -1,6 +1,6 @@
 {
     "name": "splicewire/laravel-beam-mcp",
-    "description": "The MCP arm of the schemastud beam family: any beam-tier package exposes an MCP tool by annotating the tool class #[McpTool('group')] — no Tower-side edit required. Ships the attribute-scan McpToolManifest registry (grouped tool-class discovery, self-described into beam-core's ManifestIndex) that a host MCP server (e.g. Splicewire\\Tower\\Mcp\\Servers\\SplicewireServer) composes at boot, replacing a hand-maintained tool-class list.",
+    "description": "The MCP arm of the schemastud beam family: any beam-tier package exposes an MCP tool by annotating the tool class #[McpTool('group')] \u2014 no Tower-side edit required. Ships the attribute-scan McpToolManifest registry (grouped tool-class discovery, self-described into beam-core's ManifestIndex) that a host MCP server (e.g. Splicewire\\Tower\\Mcp\\Servers\\SplicewireServer) composes at boot, replacing a hand-maintained tool-class list.",
     "keywords": [
         "laravel",
         "schemastud",
@@ -24,7 +24,8 @@
         "splicewire/laravel-beam": "*",
         "laravel/mcp": "^0.8",
         "rushing/laravel-mcp-registry": "dev-main",
-        "rushing/laravel-popcorn": "dev-main"
+        "rushing/laravel-popcorn": "dev-main",
+        "rushing/php-popcorn": "dev-main"
     },
     "require-dev": {
         "laravel/pint": "^1.0",
@@ -52,7 +53,7 @@
             ]
         },
         "package-topology": {
-            "because": "beam-mcp is the MCP arm of the beam family — it owns the attribute-scan tool-group registry (#[McpTool] → McpToolManifest) that lets any beam-tier package expose an MCP tool without a Tower-side edit. As a particle-adjacent CONSUMER it depends DOWN on base beam for the ManifestIndex self-description seam, and on laravel/mcp + rushing/laravel-mcp-registry for the ToolGroup/Tool vocabulary it composes into — a plain in-estate require, mustRequire. beam-mcp must NEVER reach UP into the tower / satellite tiers that consume it: the registry is POPULATED by beam-tier producers and READ by tower's SplicewireServer, never the reverse (no beam-mcp → tower edge).",
+            "because": "beam-mcp is the MCP arm of the beam family \u2014 it owns the attribute-scan tool-group registry (#[McpTool] \u2192 McpToolManifest) that lets any beam-tier package expose an MCP tool without a Tower-side edit. As a particle-adjacent CONSUMER it depends DOWN on base beam for the ManifestIndex self-description seam, and on laravel/mcp + rushing/laravel-mcp-registry for the ToolGroup/Tool vocabulary it composes into \u2014 a plain in-estate require, mustRequire. beam-mcp must NEVER reach UP into the tower / satellite tiers that consume it: the registry is POPULATED by beam-tier producers and READ by tower's SplicewireServer, never the reverse (no beam-mcp \u2192 tower edge).",
             "mustRequire": [
                 "splicewire/laravel-beam"
             ],
@@ -61,7 +62,7 @@
                     {
                         "fromPrefix": "splicewire/laravel-beam-mcp",
                         "toPrefix": "splicewire/laravel-tower",
-                        "because": "beam-mcp is reusable by any beam site; it is consumed DOWN by the tower host (SplicewireServer reads McpToolManifest) — beam-mcp never requires tower (no reverse/upward edge)"
+                        "because": "beam-mcp is reusable by any beam site; it is consumed DOWN by the tower host (SplicewireServer reads McpToolManifest) \u2014 beam-mcp never requires tower (no reverse/upward edge)"
                     },
                     {
                         "fromPrefix": "splicewire/laravel-beam-mcp",
@@ -102,6 +103,10 @@
         {
             "type": "git",
             "url": "https://github.com/splicewire/laravel-beam.git"
+        },
+        {
+            "type": "git",
+            "url": "https://github.com/stephenr85/php-popcorn.git"
         }
     ]
 }
