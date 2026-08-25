@@ -25,5 +25,5 @@ test('McpToolManifest declares itself with #[IsRegistry]', function () {
         // RUN-ALL, not the pick-one every other attribute-scan registry in the estate declares: a
         // consuming MCP server wants EVERY registered group at groups() time, not one group by name.
         // The read shape genuinely differs, so the declaration does too.
-        ->and($declaration->arity)->toBe(RegistryArity::RunAll);
+        ->and($declaration->arity)->toBe([RegistryArity::RunAll]);
 });
