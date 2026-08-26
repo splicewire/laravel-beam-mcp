@@ -10,7 +10,16 @@ use Attribute;
  * enum values). Type, wire name, required-ness, and default all come from the property declaration,
  * so this attribute never restates them.
  */
-#[Attribute(Attribute::TARGET_PARAMETER)]
+/*
+ * TARGET_PROPERTY is required alongside TARGET_PARAMETER even though only the parameter is ever
+ * read: on a constructor-PROMOTED property — the only place this attribute is ever written — PHP
+ * attaches the attribute to BOTH the parameter and the generated property, and spatie's
+ * `DataAttributesCollectionFactory` instantiates every property attribute it finds. Parameter-only
+ * targeting therefore made `DataConfig::getDataClass()` throw "cannot target property" for any Data
+ * class using `#[Field]` at all. Unreachable until api-surface-coherence ticket 85 booted
+ * `LaravelDataServiceProvider` in this harness, because nothing here could analyse a Data class.
+ */
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 class Field
 {
     /**

@@ -15,6 +15,10 @@ abstract class ConfigDiscoveryTestCase extends TestCase
 {
     protected function defineEnvironment($app): void
     {
+        // The base case's environment carries the laravel-data config the host runs (ticket 85);
+        // overriding without this call would silently drop it for every ConfigDriven/ test.
+        parent::defineEnvironment($app);
+
         $app['config']->set('beam.mcp.classes', [
             FakeShopToolOne::class,
             FakeRetrieveTool::class,
