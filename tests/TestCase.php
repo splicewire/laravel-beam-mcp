@@ -3,6 +3,7 @@
 namespace Splicewire\Beam\Mcp\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
+use Rushing\Popcorn\Laravel\PopcornServiceProvider;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Mcp\BeamMcpServiceProvider;
 use Splicewire\Beam\Seed\BeamSeedManifest;
@@ -32,6 +33,11 @@ abstract class TestCase extends Orchestra
         $app->singleton(BeamSeedManifest::class);
 
         return [
+            // Registry-kernel ticket 27 D3 / sweep-brief §3b finding 2: testbench does NOT
+            // auto-discover, so without this provider `RegistryIndex` resolves to a fresh throwaway
+            // per `make()` and every `describe()` lands on an object nobody can read back — a suite
+            // that stays green over an empty index. `IndexIsSharedTest` is the tripwire.
+            PopcornServiceProvider::class,
             BeamMcpServiceProvider::class,
         ];
     }

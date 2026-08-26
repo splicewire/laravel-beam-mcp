@@ -4,6 +4,7 @@ namespace Splicewire\Beam\Mcp;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Rushing\Popcorn\Registries\RegistryIndex;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
@@ -49,7 +50,21 @@ class BeamMcpServiceProvider extends ServiceProvider
         $this->registerDocsSeed();
 
         $this->discoverMcpTools();
+        $this->describeToolManifest();
         $this->registerDoctorAudits();
+    }
+
+    /**
+     * Registry-kernel ticket 38: declaring and indexing are two acts (ticket 21 D1), and until the
+     * second one lands the index holds nothing. Described from this package's own `boot()`, AFTER
+     * `discoverMcpTools()` has filled it, `by:` this provider.
+     */
+    protected function describeToolManifest(): void
+    {
+        $this->app->make(RegistryIndex::class)->describe(
+            $this->app->make(McpToolManifest::class),
+            by: self::class,
+        );
     }
 
     /**
