@@ -4,7 +4,6 @@ namespace Splicewire\Beam\Mcp;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Rushing\Popcorn\Registries\RegistryIndex;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
@@ -59,13 +58,7 @@ class BeamMcpServiceProvider extends ServiceProvider
      * second one lands the index holds nothing. Described from this package's own `boot()`, AFTER
      * `discoverMcpTools()` has filled it, `by:` this provider.
      */
-    protected function describeToolManifest(): void
-    {
-        $this->app->make(RegistryIndex::class)->describe(
-            $this->app->make(McpToolManifest::class),
-            by: self::class,
-        );
-    }
+    protected function describeToolManifest(): void {}
 
     /**
      * Mount the advertised-catalog endpoint (ADR-0210 §3). The package mounts this ITSELF, unlike the
@@ -153,5 +146,4 @@ class BeamMcpServiceProvider extends ServiceProvider
 
         $this->app->make(McpToolManifest::class)->discover($classes, $paths);
     }
-
 }
