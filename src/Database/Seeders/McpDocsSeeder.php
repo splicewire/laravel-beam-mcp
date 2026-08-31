@@ -4,6 +4,7 @@ namespace Splicewire\Beam\Mcp\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
+use Splicewire\Beam\Mdx\Frontmatter\FrontmatterParser;
 
 /**
  * beam-mcp's docs contribution: **one seed row** (ADR-0210 §1). There is no registry to register into
@@ -150,31 +151,33 @@ class McpDocsSeeder extends Seeder
      * The flat `key: value` frontmatter, as entry columns. Only set keys are returned, so an unresolved
      * field falls to the model default rather than being written as null.
      *
+     * Reads through the shared {@see FrontmatterParser} (frontmatter-declaration-seam ticket 04) — the
+     * fifth and last copy of the grammar, retired.
+     *
+     * ⚠️ Takes the CANONICAL fields, like beam-ux's two column-projecting readers and unlike `Mdx` and
+     * `MdxBody`, because these three keys ARE entry columns and columns are snake by definition.
+     *
+     * That matters here even though this package writes its own stub, because {@see pageStub()} is
+     * **published-copy-first**: a host may `vendor:publish` this file into `resources/beam-mcp/` and
+     * edit it. A host writing `navOrder:` previously parsed cleanly and had the value dropped — the
+     * same silent no-op this charter exists to remove, on a file a host is explicitly invited to own.
+     *
      * @return array<string, mixed>
      */
     private function columns(string $raw): array
     {
-        if (! preg_match('/^---\r?\n(.*?)\r?\n---\r?\n?/s', $raw, $match)) {
-            return [];
-        }
+        $fields = app(FrontmatterParser::class)->parse($raw)->fields;
 
         $out = [];
 
-        foreach (preg_split('/\r?\n/', $match[1]) as $line) {
-            if (! preg_match('/^([A-Za-z0-9_-]+):\s*(.*)$/', $line, $kv)) {
-                continue;
+        foreach (['title', 'segment'] as $key) {
+            if (($fields[$key] ?? '') !== '') {
+                $out[$key] = $fields[$key];
             }
+        }
 
-            $key = $kv[1];
-            $value = trim($kv[2], " \t\"'");
-
-            if (in_array($key, ['title', 'segment'], true) && $value !== '') {
-                $out[$key] = $value;
-            }
-
-            if ($key === 'nav_order' && is_numeric($value)) {
-                $out['nav_order'] = (int) $value;
-            }
+        if (isset($fields['nav_order']) && is_numeric($fields['nav_order'])) {
+            $out['nav_order'] = (int) $fields['nav_order'];
         }
 
         return $out;

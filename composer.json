@@ -21,12 +21,13 @@
         "php": "^8.2",
         "illuminate/contracts": "^11.0|^12.0|^13.0",
         "illuminate/support": "^11.0|^12.0|^13.0",
-        "splicewire/laravel-beam": "*",
         "laravel/mcp": "^0.8",
         "rushing/laravel-mcp-registry": "dev-main",
         "rushing/laravel-popcorn": "dev-main",
         "rushing/php-popcorn": "dev-main",
-        "spatie/laravel-data": "^4.0|^5.0"
+        "spatie/laravel-data": "^4.0|^5.0",
+        "splicewire/laravel-beam": "*",
+        "splicewire/laravel-beam-mdx": "*"
     },
     "require-dev": {
         "laravel/pint": "^1.0",
@@ -152,6 +153,10 @@
         {
             "type": "git",
             "url": "https://github.com/schemastud/php-json-ns.git"
+        },
+        {
+            "type": "git",
+            "url": "https://github.com/splicewire/laravel-beam-mdx.git"
         }
     ]
 }
