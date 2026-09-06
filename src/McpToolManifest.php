@@ -8,7 +8,6 @@ use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\OnDuplicate;
 use Rushing\Popcorn\Registries\Registry;
-use Rushing\Popcorn\Registries\RegistryArity;
 use Rushing\Popcorn\Registries\RegistryKey;
 
 use InvalidArgumentException;
@@ -18,8 +17,7 @@ use Rushing\Popcorn\Discovery\AttributedClassScanner;
 use Splicewire\Beam\Mcp\Attributes\McpTool;
 
 /**
- * The MCP tool-group registry (beam-manifest-index: `attribute-scan` seam, `run-all` arity — a
- * host reads EVERY registered group, not one by key). Mirrors `Splicewire\Beam\Frame\
+ * The MCP tool-group registry. A host reads every registered group. Mirrors `Splicewire\Beam\Frame\
  * AdminResourceRegistry`'s `registerClass()`/`discover()`/`scanPaths()` shape one-for-one, applied
  * to `#[McpTool]` instead of `#[ParticleResource]`.
  *
@@ -41,13 +39,9 @@ use Splicewire\Beam\Mcp\Attributes\McpTool;
  */
 #[IsRegistry(
     root: 'beam.mcp.tools',
-    of: 'MCP tool classes grouped by mount group, exposed to a host MCP server\'s groups()',
-    arity: RegistryArity::RunAll,
     entryType: 'class-string<Laravel\Mcp\Server\Tool>',
     onDuplicate: OnDuplicate::Admit,
-    note: 'Filled by an #[McpTool] attribute scan. Admit because a group legitimately holds many tools — '
-        .'the key is the GROUP, not the tool. Registering the same class into the same group twice is a '
-        .'no-op, which Admit does not give you for free.',
+    description: 'MCP tool classes grouped by mount group, exposed to a host MCP server\'s groups(). Filled by an #[McpTool] attribute scan. Admit because a group legitimately holds many tools — the key is the GROUP, not the tool. Registering the same class into the same group twice is a no-op, which Admit does not give you for free.',
     order: 16,
 )]
 class McpToolManifest implements Gated, Registry
@@ -66,7 +60,7 @@ class McpToolManifest implements Gated, Registry
      * The entry is WIDENED to accept a list rather than the contract's single value, because the
      * shipped config shape (`group => [class, class]`) is a list per key and `Admit` is what turns
      * that into one entry per element. The STORED entry is always one class-string, so `entryType`
-     * stays a class-string and the arity declaration is unchanged.
+     * stays a class-string.
      *
      * Already-admitted classes are skipped, which is what keeps a repeated `discover()` idempotent.
      *
@@ -204,7 +198,7 @@ class McpToolManifest implements Gated, Registry
     }
 
     /**
-     * Every registered tool class across every group, de-duplicated — the flat run-all read.
+     * Every registered tool class across every group, de-duplicated — a flat enumeration.
      * Group-major rather than raw registration order, which is the shape this has always returned.
      *
      * @return list<class-string>

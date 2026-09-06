@@ -2,7 +2,6 @@
 
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\Key;
-use Rushing\Popcorn\Registries\RegistryArity;
 use Splicewire\Beam\Mcp\McpToolManifest;
 
 test('McpToolManifest is bound as a container singleton', function () {
@@ -21,9 +20,5 @@ test('McpToolManifest declares itself with #[IsRegistry]', function () {
 
     expect($declaration)->not->toBeNull()
         ->and($declaration->root)->toBe('beam.mcp.tools')
-        ->and((string) Key::parse($declaration->root))->toBe('beam.mcp.tools')
-        // RUN-ALL, not the pick-one every other attribute-scan registry in the estate declares: a
-        // consuming MCP server wants EVERY registered group at groups() time, not one group by name.
-        // The read shape genuinely differs, so the declaration does too.
-        ->and($declaration->arity)->toBe([RegistryArity::RunAll]);
+        ->and((string) Key::parse($declaration->root))->toBe('beam.mcp.tools');
 });
