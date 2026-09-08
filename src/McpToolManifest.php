@@ -6,7 +6,7 @@ use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\BasicRegistry;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
-use Rushing\Popcorn\Registries\OnDuplicate;
+use Rushing\Popcorn\Registries\OnKeyDuplicate;
 use Rushing\Popcorn\Registries\Registry;
 use Rushing\Popcorn\Registries\RegistryKey;
 
@@ -25,7 +25,7 @@ use Splicewire\Beam\Mcp\Attributes\McpTool;
  *
  * Registry-kernel ticket 38: the storage was `array<string, list<class-string>>` — one array slot
  * per group holding a list. On the kernel that is not one entry holding a list, it is MANY entries
- * admitted under one key ({@see OnDuplicate::Admit}, which this class already declared). So
+ * admitted under one key ({@see OnKeyDuplicate::Admit}, which this class already declared). So
  * `beam.mcp.tools.shop` holds two entries when two tools carry `#[McpTool('shop')]`, `classesFor()`
  * is a `matches()` over that branch, and `grouped()` is rebuilt from `relativeKeys()` rather than
  * kept beside the entries. Sweep-brief §3e finding 2 is the same shape from the config side.
@@ -40,7 +40,7 @@ use Splicewire\Beam\Mcp\Attributes\McpTool;
 #[IsRegistry(
     root: 'beam.mcp.tools',
     entryType: 'class-string<Laravel\Mcp\Server\Tool>',
-    onDuplicate: OnDuplicate::Admit,
+    onKeyDuplicate: OnKeyDuplicate::Admit,
     description: 'MCP tool classes grouped by mount group, exposed to a host MCP server\'s groups(). Filled by an #[McpTool] attribute scan. Admit because a group legitimately holds many tools — the key is the GROUP, not the tool. Registering the same class into the same group twice is a no-op, which Admit does not give you for free.',
     order: 16,
 )]
