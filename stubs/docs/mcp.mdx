@@ -1,43 +1,32 @@
 ---
-title: MCP Server
+title: MCP Tool Catalog
 segment: mcp
 nav_order: 20
 ---
 
-# MCP Server
+# MCP Tool Catalog
 
-A Model Context Protocol server that gives an AI client — Claude, Cursor, or your own agent —
-first-class access to this host's capabilities. Purpose-built tools, not an auto-wrapped REST surface.
+This page lists the tools declared by installed packages for use with the Model Context Protocol
+(MCP). Installing `splicewire/laravel-beam-mcp` provides this catalog and its JSON manifest endpoint.
+It does not mount an MCP server transport or make these tools callable by an AI client.
 
-## Endpoint
+## Connecting an AI client
 
-The server speaks the MCP streamable-HTTP transport. Point an OAuth-capable client straight at the
-endpoint URL; clients without native remote-MCP support bridge through `mcp-remote`.
+A host must separately configure and mount an MCP server, including its authentication and tool
+exposure. A working catalog does not establish that a server is available, and this page does not
+detect whether the host has mounted one.
 
-The URL below is this host's **conventional** MCP mount. `splicewire/laravel-beam-mcp` ships the tool
-manifest, not the transport — the server route itself is mounted by the host through `laravel/mcp` — so
-if you mounted it somewhere else, correct the URL here. This page is a row this site owns; the edit
-sticks.
+After mounting and verifying a server, the host can customize this page with its actual endpoint,
+authentication requirements, and client setup instructions.
 
-```json
-{
-  "mcpServers": {
-    "beam": {
-      "command": "npx",
-      "args": ["mcp-remote", "{{ endpoint_url }}"]
-    }
-  }
-}
-```
+## Declared tools
 
-## Tools
-
-This is the **advertised catalog** — everything this deployment offers. What any particular caller may
-actually invoke can be narrower, resolved per request at `tools/list` time.
+The catalog below describes the tools registered in this deployment. A mounted server decides which
+tools it exposes; an authenticated caller's access may be narrower still.
 
 <ManifestTable endpoint="{{ manifest_url }}" />
 
 ---
 
-_Seeded by `splicewire/laravel-beam-mcp`. The page is a row this site owns: edit it freely. Uninstalling
-the MCP package leaves the page in place with an empty tool list, and `beam:doctor` reports the orphan._
+_This page belongs to the host. Edit it freely; package seeding leaves existing pages unchanged.
+A host-published docs stub controls the initial content of newly seeded pages._
