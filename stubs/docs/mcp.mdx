@@ -6,27 +6,17 @@ nav_order: 20
 
 # MCP Tool Catalog
 
-This page lists the tools declared by installed packages for use with the Model Context Protocol
-(MCP). Installing `splicewire/laravel-beam-mcp` provides this catalog and its JSON manifest endpoint.
-It does not mount an MCP server transport or make these tools callable by an AI client.
+The tools this deployment declares for the Model Context Protocol (MCP), and how to connect an AI client to them.
 
 ## Connecting an AI client
 
-The servers this deployment mounts, read from its route table when this page was seeded:
-
 {{ mcp_servers }}
 
-A working catalog does not by itself establish that a server is available: a host mounts one with
-`Mcp::web(...)`, including its authentication and tool exposure.
+A tool listed below is callable only through a mounted server, and only as far as that server and your access allow.
 
 ## Declared tools
 
-The catalog below describes the tools registered in this deployment. A mounted server decides which
-tools it exposes; an authenticated caller's access may be narrower still.
+The tools registered in this deployment. A mounted server decides which of them it exposes; an authenticated caller's
+access may be narrower still.
 
 <ManifestTable endpoint="{{ manifest_url }}" />
-
----
-
-_This page belongs to the host. Edit it freely; package seeding leaves existing pages unchanged.
-A host-published docs stub controls the initial content of newly seeded pages._
