@@ -1,0 +1,43 @@
+---
+title: MCP Server
+segment: mcp
+nav_order: 20
+---
+
+# MCP Server
+
+A Model Context Protocol server that gives an AI client — Claude, Cursor, or your own agent —
+first-class access to this host's capabilities. Purpose-built tools, not an auto-wrapped REST surface.
+
+## Endpoint
+
+The server speaks the MCP streamable-HTTP transport. Point an OAuth-capable client straight at the
+endpoint URL; clients without native remote-MCP support bridge through `mcp-remote`.
+
+The URL below is this host's **conventional** MCP mount. `splicewire/laravel-beam-mcp` ships the tool
+manifest, not the transport — the server route itself is mounted by the host through `laravel/mcp` — so
+if you mounted it somewhere else, correct the URL here. This page is a row this site owns; the edit
+sticks.
+
+```json
+{
+  "mcpServers": {
+    "beam": {
+      "command": "npx",
+      "args": ["mcp-remote", "{{ endpoint_url }}"]
+    }
+  }
+}
+```
+
+## Tools
+
+This is the **advertised catalog** — everything this deployment offers. What any particular caller may
+actually invoke can be narrower, resolved per request at `tools/list` time.
+
+<ManifestTable endpoint="{{ manifest_url }}" />
+
+---
+
+_Seeded by `splicewire/laravel-beam-mcp`. The page is a row this site owns: edit it freely. Uninstalling
+the MCP package leaves the page in place with an empty tool list, and `beam:doctor` reports the orphan._

@@ -32,6 +32,18 @@ class BeamMcpServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // DOCS-06b: this package's docs page templates (current and the prior one found on live rows) for beam-ux's
+        // provenance backfill. By class-string, as everywhere in this package: beam-ux may not be installed.
+        $templates = 'Splicewire\\Beam\\Ux\\Provenance\\ProvenanceTemplates';
+        if (class_exists($templates) && $this->app->bound($templates)) {
+            $this->app->make($templates)->register(fn (): array => array_map(
+                fn (array $t): object => new ('Splicewire\\Beam\\Ux\\Provenance\\ProvenanceTemplate')(
+                    \Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder::ORIGIN, null, 'docs-mcp', $t['template'], $t['label'],
+                ),
+                \Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder::provenanceTemplates(),
+            ));
+        }
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/beam/mcp.php' => $this->app->configPath('beam/mcp.php'),

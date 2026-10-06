@@ -33,6 +33,13 @@ class McpDocsSeeder extends Seeder
 
     private const COMPILE = 'Splicewire\Beam\Ux\Compile\CompileEntryBody';
 
+    private const REASSERTER = 'Splicewire\Beam\Ux\Provenance\Reasserter';
+
+    private const PROVENANCE = 'Splicewire\Beam\Ux\Provenance\Provenance';
+
+    /** The origin this page is stamped with, and re-asserted under (docs-walkthrough DOCS-06b, ADR-0215 §2). */
+    public const ORIGIN = 'package:splicewire/laravel-beam-mcp';
+
     public function run(): void
     {
         if (! config('beam.mcp.docs.seed', true)) {
@@ -58,15 +65,21 @@ class McpDocsSeeder extends Seeder
             return;
         }
 
-        if ($entry::query()->where('slug', 'docs-mcp')->exists()) {
-            // Create, never update: the row is site-owned from creation (ADR-0210 §6), so a re-seed
-            // after someone has re-worded or moved the page must leave every edit alone.
-            return;
-        }
-
         $stub = $this->stub();
 
         if ($stub === null) {
+            return;
+        }
+
+        $existing = $entry::query()->where('slug', 'docs-mcp')->first();
+        if ($existing !== null) {
+            // DOCS-06b: no longer create-only. beam-ux's Reasserter rewrites a PRISTINE row of this origin from the current
+            // stub, keeps an edited one (docs.diverged reports it), never touches cms, and never moves it. Without beam-ux's
+            // provenance (an older beam-ux), the row stays as it is.
+            if (class_exists(self::REASSERTER)) {
+                app(self::REASSERTER)->reassert($existing, $stub['columns']['title'] ?? null, $stub['body'], self::ORIGIN);
+            }
+
             return;
         }
 
@@ -108,6 +121,10 @@ class McpDocsSeeder extends Seeder
 
             if ($written->key !== '') {
                 $page->particle_id = $written->key;
+                // Stamped at birth (DOCS-06b) so a later stub re-asserts it; [] before the provenance migration.
+                if (class_exists(self::PROVENANCE)) {
+                    $page->forceFill((self::PROVENANCE)::stamp(self::ORIGIN, $page->title, $stub['body'], $page->codec()));
+                }
                 $page->save();
             }
 
@@ -120,6 +137,26 @@ class McpDocsSeeder extends Seeder
             // Reported by beam-ux's artifact doctor check. A seed runs on hosts with no Node (CI, a
             // container build stage), and taking down `beam:seed` over it would be worse.
         }
+    }
+
+    /**
+     * The templates this page has been seeded from, unfilled, for beam-ux's provenance backfill (DOCS-06b): the host's
+     * published copy if it has one, this package's own stub, and the prior stub measured on live rows
+     * (`stubs/docs/history/`, laravel-beam-mcp@e7a3da9 with its `{{ endpoint_url }}`).
+     *
+     * @return list<array{template: string, label: string}>
+     */
+    public static function provenanceTemplates(): array
+    {
+        $own = dirname(__DIR__, 3).'/stubs/docs';
+        $out = [];
+        foreach (array_unique([resource_path('beam-mcp/docs/mcp.mdx'), $own.'/mcp.mdx', ...(glob($own.'/history/mcp@*.mdx') ?: [])]) as $path) {
+            if (is_file($path)) {
+                $out[] = ['template' => (string) file_get_contents($path), 'label' => 'beam-mcp '.basename($path, '.mdx')];
+            }
+        }
+
+        return $out;
     }
 
     /**
