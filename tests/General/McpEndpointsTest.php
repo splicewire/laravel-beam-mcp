@@ -60,3 +60,10 @@ test('one server class mounted twice gets two distinct client keys, so neither o
     expect(array_column(app(McpEndpoints::class)->all(), 'key'))->toBe(['gated-shop', 'gated-shop-mcp-local'])
         ->and(app(McpEndpoints::class)->markdown())->toContain('"gated-shop-mcp-local"');
 });
+
+test('the legacy single endpoint prefers a guarded server over a keyless local one', function () {
+    Mcp::web('mcp-local', GatedShopServer::class);
+    Mcp::web('mcp', GatedShopServer::class)->middleware('auth:api');
+
+    expect(app(McpEndpoints::class)->primary())->toBe('https://host.test/mcp');
+});

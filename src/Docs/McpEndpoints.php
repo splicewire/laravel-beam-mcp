@@ -67,10 +67,21 @@ class McpEndpoints
         return implode("\n", $lines)."\n\n```json\n".json_encode(['mcpServers' => $config], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n```";
     }
 
-    /** The first mounted server's endpoint, for a host stub that still writes `{{ endpoint_url }}`; null when none. */
+    /**
+     * The one endpoint a host stub that still writes `{{ endpoint_url }}` gets: the first GUARDED server, so a keyless
+     * local-only mount (the flagship's `mcp-local`) is never the one a reader copies, else the first server, null when none
+     * (build.qa).
+     */
     public function primary(): ?string
     {
-        return $this->all()[0]['url'] ?? null;
+        $servers = $this->all();
+        foreach ($servers as $server) {
+            if ($server['guard'] !== null) {
+                return $server['url'];
+            }
+        }
+
+        return $servers[0]['url'] ?? null;
     }
 
     /** @return array{url: string, guard: ?string, key: string, server: ?string} */
