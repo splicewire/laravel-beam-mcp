@@ -12,12 +12,12 @@ It does not mount an MCP server transport or make these tools callable by an AI 
 
 ## Connecting an AI client
 
-A host must separately configure and mount an MCP server, including its authentication and tool
-exposure. A working catalog does not establish that a server is available, and this page does not
-detect whether the host has mounted one.
+The servers this deployment mounts, read from its route table when this page was seeded:
 
-After mounting and verifying a server, the host can customize this page with its actual endpoint,
-authentication requirements, and client setup instructions.
+{{ mcp_servers }}
+
+A working catalog does not by itself establish that a server is available: a host mounts one with
+`Mcp::web(...)`, including its authentication and tool exposure.
 
 ## Declared tools
 
