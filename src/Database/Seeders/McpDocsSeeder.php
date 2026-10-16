@@ -40,6 +40,8 @@ class McpDocsSeeder extends Seeder
     /** beam-ux's publication seam (ADR-0225), resolved by class-string like the rest: absent on a pre-L3 beam-ux. */
     private const PUBLICATION = 'Splicewire\Beam\Ux\Publish\EntryPublication';
 
+    private const COMPILATION_FAILED = 'Splicewire\Beam\Ux\Compile\CompilationFailed';
+
     /** The origin this page is stamped with, and re-asserted under (docs-walkthrough DOCS-06b, ADR-0215 §2). */
     public const ORIGIN = 'package:splicewire/laravel-beam-mcp';
 
@@ -83,6 +85,12 @@ class McpDocsSeeder extends Seeder
                 app(self::REASSERTER)->reassert($existing, $stub['columns']['title'] ?? null, $stub['body'], self::ORIGIN);
             }
 
+            // RETRY REPAIRS, in step with beam-ux's SeedsEntries::seedPage(): a docs-mcp row left without a Publication
+            // Pin is pinned here; baseline() pins only a body with NO history, so an unpublished draft is never published.
+            if (class_exists(self::PUBLICATION)) {
+                app(self::PUBLICATION)->baseline($existing->refresh());
+            }
+
             return;
         }
 
@@ -115,7 +123,8 @@ class McpDocsSeeder extends Seeder
         //  - Without the marking, `WorkflowMarkingPublishGate` 404s the page on every host that binds a
         //    `page` workflow, so a contributed page that resolves and compiles correctly is still
         //    invisible. `$stub['columns']` merges over this, so frontmatter can still say otherwise.
-        $page = \Illuminate\Support\Facades\DB::transaction(function () use ($entry, $parent, $stub) {
+        // The create, the body write AND the publication share one transaction.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($entry, $parent, $stub) {
             // The marking comes from beam-ux's own guarded helper (it is a no-op where the optional
             // `workflow_marking` column is absent), resolved off the class-string like everything else
             // here so this file still imports nothing from beam-ux.
@@ -138,23 +147,27 @@ class McpDocsSeeder extends Seeder
                 $page->save();
             }
 
-            return $page;
-        });
-
-        try {
-            // Pin the written body and compile it at the pinned address. Without the publication seam (a pre-L3
-            // beam-ux), or for a body its storage driver doesn't keep as a particle, compile as it always did.
+            // Pin and compile at the pinned address, INSIDE the transaction: a failure to pin propagates and rolls the
+            // row back, so a failed seed leaves nothing behind (beam-ux returns a compile failure instead of throwing).
             if (class_exists(self::PUBLICATION)) {
                 app(self::PUBLICATION)->publishWritten($page->refresh(), 'seeded');
             }
 
+            // Without the seam (a pre-L3 beam-ux), or for a body its storage driver doesn't keep as a particle, compile
+            // as it always did, tolerating ONLY a compile failure: a seed runs on hosts with no Node (CI, a container
+            // build stage), and beam-ux's artifact doctor check reports it.
             if ($page->refresh()->getAttribute('published_version') === null) {
-                app(self::COMPILE)->forEntry($page, $stub['body'], force: true);
+                try {
+                    app(self::COMPILE)->forEntry($page, $stub['body'], force: true);
+                } catch (\Throwable $e) {
+                    if (! is_a($e, self::COMPILATION_FAILED)) {
+                        throw $e;
+                    }
+                }
             }
-        } catch (\Throwable) {
-            // Reported by beam-ux's artifact doctor check. A seed runs on hosts with no Node (CI, a
-            // container build stage), and taking down `beam:seed` over it would be worse.
-        }
+
+            return $page;
+        });
     }
 
     /**
