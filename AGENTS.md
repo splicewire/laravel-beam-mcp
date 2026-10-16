@@ -1,4 +1,4 @@
-> You are in **rushing/laravel-beam-mcp** — the MCP arm of the schemastud beam family.
+> You are in **splicewire/laravel-beam-mcp** — the MCP arm of the beam family.
 
 Any beam-tier package exposes an MCP tool by annotating the tool class `#[McpTool('group')]` — no
 Tower-side edit required. Ships the attribute-scan `McpToolManifest` registry (grouped tool-class
