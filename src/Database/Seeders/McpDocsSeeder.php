@@ -37,6 +37,9 @@ class McpDocsSeeder extends Seeder
 
     private const PROVENANCE = 'Splicewire\Beam\Ux\Provenance\Provenance';
 
+    /** beam-ux's publication seam (ADR-0225), resolved by class-string like the rest: absent on a pre-L3 beam-ux. */
+    private const PUBLICATION = 'Splicewire\Beam\Ux\Publish\EntryPublication';
+
     /** The origin this page is stamped with, and re-asserted under (docs-walkthrough DOCS-06b, ADR-0215 §2). */
     public const ORIGIN = 'package:splicewire/laravel-beam-mcp';
 
@@ -81,6 +84,13 @@ class McpDocsSeeder extends Seeder
             }
 
             return;
+        }
+
+        // BORN PUBLISHED (ADR-0225 decision 2), in step with beam-ux's SeedsEntries::seedPage(): refuse, with the
+        // remedy and before any row is written, on a host without the version store. Seeders run after `migrate`, so
+        // the baseline migration never pins this page (launch row qitem-20261016214321-d6aa335c).
+        if (class_exists(self::PUBLICATION)) {
+            app(self::PUBLICATION)->requireVersionStore();
         }
 
         $this->create($entry, $parent, $stub);
@@ -132,7 +142,15 @@ class McpDocsSeeder extends Seeder
         });
 
         try {
-            app(self::COMPILE)->forEntry($page->refresh(), $stub['body'], force: true);
+            // Pin the written body and compile it at the pinned address. Without the publication seam (a pre-L3
+            // beam-ux), or for a body its storage driver doesn't keep as a particle, compile as it always did.
+            if (class_exists(self::PUBLICATION)) {
+                app(self::PUBLICATION)->publishWritten($page->refresh(), 'seeded');
+            }
+
+            if ($page->refresh()->getAttribute('published_version') === null) {
+                app(self::COMPILE)->forEntry($page, $stub['body'], force: true);
+            }
         } catch (\Throwable) {
             // Reported by beam-ux's artifact doctor check. A seed runs on hosts with no Node (CI, a
             // container build stage), and taking down `beam:seed` over it would be worse.
