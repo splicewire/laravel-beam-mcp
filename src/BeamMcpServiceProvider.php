@@ -140,6 +140,16 @@ class BeamMcpServiceProvider extends ServiceProvider
             'splicewire/laravel-beam-mcp',
             McpToolShapeAudit::class,
         );
+
+        // Install enrollment rides the same beam-core guard (B2-2): a beam-core that ships the
+        // doctor manifest ships the install manifest too — config + the optional docs stubs.
+        if ($this->app->bound(\Splicewire\Beam\Install\BeamInstallManifest::class)) {
+            $this->app->make(\Splicewire\Beam\Install\BeamInstallManifest::class)->register(
+                package: 'splicewire/laravel-beam-mcp',
+                publishTags: ['beam-mcp-config', 'beam-mcp-docs'],
+                migrates: false,
+            );
+        }
     }
 
     /**
