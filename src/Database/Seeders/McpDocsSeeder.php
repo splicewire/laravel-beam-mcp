@@ -42,6 +42,8 @@ class McpDocsSeeder extends Seeder
 
     private const COMPILATION_FAILED = 'Splicewire\Beam\Ux\Compile\CompilationFailed';
 
+    private const SHIPPED_MDX = 'Splicewire\Beam\Ux\Seed\ShippedMdx';
+
     /** The origin this page is stamped with, and re-asserted under (docs-walkthrough DOCS-06b, ADR-0215 §2). */
     public const ORIGIN = 'package:splicewire/laravel-beam-mcp';
 
@@ -73,6 +75,22 @@ class McpDocsSeeder extends Seeder
         $stub = $this->stub();
 
         if ($stub === null) {
+            return;
+        }
+
+        // EP-42 S1 (ADR-0233 d9, "a package runs it over the pages it ships"): on a host whose MDX pages hold blocks, this
+        // page is seeded converted, the way beam-ux seeds its own (its ShippedMdx; null wherever it can't convert, and on
+        // a beam-ux that predates it). Reasserter::seedBody() creates it born published, or re-asserts it while pristine
+        // and keeps an edited one, as the source path below does.
+        $blocks = class_exists(self::SHIPPED_MDX) && class_exists(self::REASSERTER) ? (self::SHIPPED_MDX)::asBlocks($stub['body']) : null;
+        if ($blocks !== null) {
+            app(self::REASSERTER)->seedBody(
+                ['namespace' => null, 'slug' => 'docs-mcp'],
+                array_merge(['type' => 'page', 'format' => 'mdx', 'parent_id' => $parent->getKey()], $stub['columns']),
+                $blocks,
+                self::ORIGIN,
+            );
+
             return;
         }
 
