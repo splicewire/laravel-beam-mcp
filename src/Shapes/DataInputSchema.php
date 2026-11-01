@@ -9,6 +9,8 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use RuntimeException;
 use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Attributes\MapName;
+use Spatie\LaravelData\Mappers\NameMapper;
 
 /**
  * Derives a tool's advertised input properties from its input Data class, so the Data class is the
@@ -53,23 +55,45 @@ class DataInputSchema
         return $properties;
     }
 
-    /**
-     * The name the property carries on the wire — the spatie input mapping when present, the PHP
-     * name otherwise.
-     */
+    /** The name the property carries on the wire, matching Spatie's input-mapper precedence. */
     protected static function wireName(ReflectionParameter $parameter): string
     {
-        // MapInputName targets properties, so it must be read off the promoted property, not the parameter.
+        // Both mapping attributes target properties, so read them from the promoted property.
         $class = $parameter->getDeclaringClass();
 
         if ($class !== null && $class->hasProperty($parameter->getName())) {
-            $mapped = $class->getProperty($parameter->getName())->getAttributes(MapInputName::class);
+            $property = $class->getProperty($parameter->getName());
+            // Spatie's NameMappersResolver selects MapInputName before MapName.
+            $mapped = $property->getAttributes(MapInputName::class);
 
             if ($mapped !== []) {
                 $input = $mapped[0]->newInstance()->input;
 
                 if (is_string($input)) {
                     return $input;
+                }
+
+                if (is_int($input)) {
+                    return (string) $input;
+                }
+
+            }
+
+            $mapped = $property->getAttributes(MapName::class);
+
+            if ($mapped !== []) {
+                $input = $mapped[0]->newInstance()->input;
+
+                if (is_string($input)) {
+                    return $input;
+                }
+
+                if (is_int($input)) {
+                    return (string) $input;
+                }
+
+                if ($input instanceof NameMapper) {
+                    return (string) $input->map($parameter->getName());
                 }
             }
         }

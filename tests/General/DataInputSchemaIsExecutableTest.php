@@ -7,7 +7,9 @@ use Spatie\LaravelData\LaravelDataServiceProvider;
 use Spatie\LaravelData\Mappers\CamelCaseMapper;
 use Spatie\LaravelData\Support\DataConfig;
 use Splicewire\Beam\Mcp\Shapes\DataInputSchema;
+use Splicewire\Beam\Mcp\Tests\Fixtures\BothMappingAttributesToolInputData;
 use Splicewire\Beam\Mcp\Tests\Fixtures\FakeToolInputData;
+use Splicewire\Beam\Mcp\Tests\Fixtures\MapNameToolInputData;
 
 /**
  * The executability gate for beam-mcp's laravel-data seam (api-surface-coherence ticket 85).
@@ -133,4 +135,26 @@ it('maps the same property names laravel-data itself resolves under the host map
 
     expect($mapped['shopId'])->toBe('shop_id');
     expect($mapped['productSku'])->toBe('productSku');
+});
+
+it('uses MapName for the advertised wire name and round-trips the DTO', function () {
+    $properties = JsonSchemaFactory::object(
+        fn (JsonSchema $schema): array => DataInputSchema::properties(MapNameToolInputData::class, $schema),
+    )->toArray();
+
+    expect(array_keys($properties['properties']))->toBe(['item_ref']);
+    expect($properties['required'])->toBe(['item_ref']);
+
+    $input = MapNameToolInputData::from(['item_ref' => 'sku-123']);
+
+    expect($input->itemRef)->toBe('sku-123');
+    expect($input->toArray())->toBe(['item_ref' => 'sku-123']);
+});
+
+it('gives MapInputName precedence over MapName when both are declared', function () {
+    $properties = JsonSchemaFactory::object(
+        fn (JsonSchema $schema): array => DataInputSchema::properties(BothMappingAttributesToolInputData::class, $schema),
+    )->toArray();
+
+    expect(array_keys($properties['properties']))->toBe(['in_key']);
 });
