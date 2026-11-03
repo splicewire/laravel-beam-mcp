@@ -1,0 +1,78 @@
+---
+title: MCP tools
+segment: beam.mcp.tools
+nav_order: 16
+excerpt: The MCP tool classes a host's MCP server mounts, grouped by the mount group each one declares.
+---
+
+# MCP tools
+
+`beam.mcp.tools` collects every **MCP tool** a host's MCP server exposes, grouped by **mount group**,
+such as `shop` or `retrieve`. A package exposes a tool by putting `#[McpTool('group')]` on a
+`Laravel\Mcp\Server\Tool` class and having it discovered, with no central edit in the host. The
+host's server reads this registry for its `groups()` instead of hand-listing tools.
+
+{/* registry-facts:start — generated from the #[IsRegistry] declaration by `splicewire:beam:docs:registries:scaffold`. Rerun the command; do not edit between these markers. */}
+
+- **Root:** `beam.mcp.tools`
+- **Entries:** `class-string<Laravel\Mcp\Server\Tool>`
+- **Duplicate keys:** Admit — every registration is kept; a single-entry read of a shared key refuses as ambiguous
+- **Population:** Optional — an empty registry is normal
+- **Order:** `16` (display order, ascending)
+- **Declared by:** `Splicewire\Beam\Mcp\McpToolManifest`
+
+{/* registry-facts:end */}
+
+## Declaring a tool
+
+```php
+use Laravel\Mcp\Server\Tool;
+use Splicewire\Beam\Mcp\Attributes\McpTool;
+
+#[McpTool('shop')]
+class CreateCheckoutTool extends Tool
+{
+    // …
+}
+```
+
+The attribute only decides which group the tool mounts into. Who may call it is a separate concern,
+declared with `#[ToolAbility]` from `rushing/laravel-mcp-registry`; a tool can carry both.
+
+## How tools get in
+
+- **From config.** At boot the package discovers every class listed in `beam.mcp.classes` and every
+  `#[McpTool]` class under `beam.mcp.discover_paths`. With both empty, discovery does nothing.
+- **From a package's own provider.** A package calls `discover()` with its own class list, which
+  avoids several packages competing over one shared config array. Tower registers its tools this
+  way:
+
+```php
+app(McpToolManifest::class)->discover(classes: [
+    SearchTool::class,
+    ListSilosTool::class,
+    GetFragmentTool::class,
+]);
+```
+
+A listed class without `#[McpTool]` fails discovery, rather than being silently ignored.
+
+## What a duplicate means here
+
+The key is the **group**, not the tool, so the duplicate policy is **admit**: a group legitimately
+holds many tools, each stored as its own entry. Registering the same class into the same group again
+is skipped, so running discovery twice never lists a tool twice.
+
+## Who reads it
+
+- The host's MCP server, through `toolGroups()`, which returns ready-made `ToolGroup` objects in
+  registration order. Tower's `SplicewireServer` returns it straight from `groups()`.
+- `GET beam/mcp/manifest.json`, the read-only advertised catalog this package mounts at
+  `beam.mcp.manifest_uri` (set it to `null` to mount nothing).
+- A doctor audit that reports tools with no declared output shape, or with a hand-written input
+  schema rather than one derived from a Data class.
+
+## Going deeper
+
+The source is
+[`McpToolManifest`](https://github.com/splicewire/laravel-beam-mcp/blob/main/src/McpToolManifest.php).
