@@ -2,18 +2,18 @@
 
 namespace Splicewire\Beam\Mcp;
 
+use InvalidArgumentException;
+use ReflectionClass;
+use Rushing\McpRegistry\ToolGroup;
+use Rushing\Popcorn\Discovery\AttributedClassScanner;
 use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\BasicRegistry;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\OnKeyDuplicate;
+use Rushing\Popcorn\Registries\Registrant;
 use Rushing\Popcorn\Registries\Registry;
 use Rushing\Popcorn\Registries\RegistryKey;
-
-use InvalidArgumentException;
-use ReflectionClass;
-use Rushing\McpRegistry\ToolGroup;
-use Rushing\Popcorn\Discovery\AttributedClassScanner;
 use Splicewire\Beam\Mcp\Attributes\McpTool;
 
 /**
@@ -104,7 +104,7 @@ class McpToolManifest implements Gated, Registry
             );
         }
 
-        $this->register($attribute->group, $toolClass, by: $toolClass);
+        $this->register($attribute->group, $toolClass, by: Registrant::fromClass($toolClass));
     }
 
     /**

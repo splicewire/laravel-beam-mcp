@@ -4,6 +4,7 @@ namespace Splicewire\Beam\Mcp;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Rushing\Popcorn\Registries\Registrant;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
@@ -25,6 +26,11 @@ class BeamMcpServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        Registrant::scoped('splicewire/laravel-beam-mcp', $this->registerScoped(...));
+    }
+
+    private function registerScoped(): void
+    {
         $this->mergeConfigFrom(__DIR__.'/../config/beam/mcp.php', 'beam.mcp');
 
         $this->app->singleton(McpToolManifest::class);
@@ -32,15 +38,20 @@ class BeamMcpServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Registrant::scoped('splicewire/laravel-beam-mcp', $this->bootScoped(...));
+    }
+
+    private function bootScoped(): void
+    {
         // DOCS-06b: this package's docs page templates (current and the prior one found on live rows) for beam-ux's
         // provenance backfill. By class-string, as everywhere in this package: beam-ux may not be installed.
         $templates = 'Splicewire\\Beam\\Ux\\Provenance\\ProvenanceTemplates';
         if (class_exists($templates) && $this->app->bound($templates)) {
             $this->app->make($templates)->register(fn (): array => array_map(
                 fn (array $t): object => new ('Splicewire\\Beam\\Ux\\Provenance\\ProvenanceTemplate')(
-                    \Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder::ORIGIN, null, 'docs-mcp', $t['template'], $t['label'],
+                    McpDocsSeeder::ORIGIN, null, 'docs-mcp', $t['template'], $t['label'],
                 ),
-                \Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder::provenanceTemplates(),
+                McpDocsSeeder::provenanceTemplates(),
             ));
         }
 
