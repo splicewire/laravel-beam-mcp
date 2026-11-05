@@ -25,6 +25,29 @@ Add the class (or its directory) to `beam.mcp.classes` / `beam.mcp.discover_path
 package can also call `app(McpToolManifest::class)->discover(classes: [...])` from its own
 provider's `boot()`. The manifest is the `beam.mcp.tools` registry, so `popcorn:registries` lists it.
 
+## Generating a tool
+
+laravel/mcp's `make:mcp-tool` emits a tool with a hand-written `schema()` and no group or ability, so once
+listed it is two `particle.undeclared-mcp-shape` findings. This package's generator emits one that starts
+declared:
+
+```bash
+php artisan splicewire:beam:mcp:make:tool ListWidgetsTool --ability=widgets.read
+```
+
+That writes `App\Mcp\Tools\ListWidgetsTool` with `#[McpTool('list-widgets')]`, `#[ToolAbility('widgets.read')]`,
+`DerivesInputSchemaFromData` and an `outputSchema()`, plus `App\Data\ListWidgetsInputData`, the class its input
+schema is derived from (kept if it already exists).
+
+- `--ability` is required. It names your host's ability vocabulary, so there is no safe default.
+- `--group` defaults to the kebab-cased name without its `Tool` suffix; `--data-namespace` moves the input class.
+- The command prints the `beam.mcp.classes` line to add; it does not edit your config.
+- It then checks what it wrote: the files lint, and the tool, discovered into the manifest, has no shape finding
+  and carries the requested group and ability. A finding exits 1; `--no-verify` skips the check.
+- To change what it emits, put your own copy of `stubs/beam-mcp-tool.stub` at the same path in the host. (It is
+  not `stubs/mcp-tool.stub`, which is laravel/mcp's override path.) The input class comes from beam's
+  `stubs/particle-data.stub`, which `vendor:publish --tag=beam-stubs` publishes.
+
 ## Registries
 
 This package declares one registry:

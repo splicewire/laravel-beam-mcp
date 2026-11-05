@@ -13,6 +13,11 @@ Before adding or changing any I/O surface (HTTP route, MCP tool, Inertia page, c
 declare-every-boundary-crossing-shape invariant, its three declaration sites, the four exceptions,
 and `popcorn:registries --json` for locating the registry behind a surface.
 
+Don't hand-roll an MCP tool, and don't start one from laravel/mcp's `make:mcp-tool` (its stub hand-writes
+`schema()` and declares no group or ability). `splicewire:beam:mcp:make:tool <Name> --ability=<ability>` emits the
+tool declared (`#[McpTool]`, `#[ToolAbility]`, an input Data class through `DerivesInputSchemaFromData`, and an
+`outputSchema()`), checks it, and prints the `beam.mcp.classes` line to add.
+
 ## Vendored family-package conventions
 
 Any repo that vendors another family repo's code (composer `vendor/<vendor>/<pkg>/`, npm

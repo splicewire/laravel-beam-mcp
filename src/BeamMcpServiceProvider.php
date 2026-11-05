@@ -5,7 +5,9 @@ namespace Splicewire\Beam\Mcp;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Rushing\Popcorn\Registries\Registrant;
+use Splicewire\Beam\Console\ParticleGeneratorCommand;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
+use Splicewire\Beam\Mcp\Console\MakeMcpToolCommand;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
 use Splicewire\Beam\Mcp\Surgeon\McpToolShapeAudit;
@@ -66,6 +68,8 @@ class BeamMcpServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../stubs/docs' => resource_path('beam-mcp/docs'),
             ], 'beam-mcp-docs');
+
+            $this->registerGenerator();
         }
 
         $this->mountManifestRoute();
@@ -161,6 +165,22 @@ class BeamMcpServiceProvider extends ServiceProvider
                 migrates: false,
             );
         }
+    }
+
+    /**
+     * `splicewire:beam:mcp:make:tool` (make-surface 07), which mints a tool that starts declared. It rides beam's
+     * generator chassis and ends in the chassis's `verified()` check (make-surface 09), so it is registered only
+     * when the installed beam-core has that check. Without the guard, a beam-core that predates it would list a
+     * command that fatals when run; with it, this package still boots there, as the doctor and seed
+     * registrations do.
+     */
+    protected function registerGenerator(): void
+    {
+        if (! method_exists(ParticleGeneratorCommand::class, 'verified')) {
+            return;
+        }
+
+        $this->commands([MakeMcpToolCommand::class]);
     }
 
     /**
