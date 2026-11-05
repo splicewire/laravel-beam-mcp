@@ -46,8 +46,8 @@ declared with `#[ToolAbility]` from `rushing/laravel-mcp-registry`; a tool can c
 - **From config.** At boot the package discovers every class listed in `beam.mcp.classes` and every
   `#[McpTool]` class under `beam.mcp.discover_paths`. With both empty, discovery does nothing.
 - **From a package's own provider.** A package calls `discover()` with its own class list, which
-  avoids several packages competing over one shared config array. Tower registers its tools this
-  way:
+  avoids several packages competing over one shared config array.
+  [Splicewire](https://splicewire.test/) registers its tools this way:
 
 ```php
 app(McpToolManifest::class)->discover(classes: [
@@ -61,14 +61,15 @@ A listed class without `#[McpTool]` fails discovery, rather than being silently 
 
 ## What a duplicate means here
 
-The key is the **group**, not the tool, so the duplicate policy is **admit**: a group legitimately
-holds many tools, each stored as its own entry. Registering the same class into the same group again
-is skipped, so running discovery twice never lists a tool twice.
+The key is the **group**, not the tool, so the
+[**duplicate-key policy**](/beam/docs/foundations/registries#key-policies) is **admit**: a
+group legitimately holds many tools, each stored as its own entry. Registering the same class into
+the same group again is skipped, so running discovery twice never lists a tool twice.
 
 ## Who reads it
 
 - The host's MCP server, through `toolGroups()`, which returns ready-made `ToolGroup` objects in
-  registration order. Tower's `SplicewireServer` returns it straight from `groups()`.
+  registration order. Splicewire's `SplicewireServer` returns it straight from `groups()`.
 - `GET beam/mcp/manifest.json`, the read-only advertised catalog this package mounts at
   `beam.mcp.manifest_uri` (set it to `null` to mount nothing).
 - A doctor audit that reports tools with no declared output shape, or with a hand-written input
