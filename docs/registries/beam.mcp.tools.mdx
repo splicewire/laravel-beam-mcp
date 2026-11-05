@@ -47,7 +47,7 @@ declared with `#[ToolAbility]` from `rushing/laravel-mcp-registry`; a tool can c
   `#[McpTool]` class under `beam.mcp.discover_paths`. With both empty, discovery does nothing.
 - **From a package's own provider.** A package calls `discover()` with its own class list, which
   avoids several packages competing over one shared config array.
-  [Splicewire](https://splicewire.test/) registers its tools this way:
+  [Splicewire](https://splicewire.com/) registers its tools this way:
 
 ```php
 app(McpToolManifest::class)->discover(classes: [
