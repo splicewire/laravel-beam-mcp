@@ -2,15 +2,20 @@
 
 namespace Splicewire\Beam\Mcp\Tests\General;
 
+use Closure;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
+use ReflectionClass;
 use Rushing\McpRegistry\Concerns\AuthorizesTools;
 use Splicewire\Beam\Authorization\ActorPort;
+use Splicewire\Beam\Console\ParticleGeneratorCommand;
 use Splicewire\Beam\Mcp\Authorization\EntitlementToolAuthorizer;
 use Splicewire\Beam\Mcp\Console\MakeMcpToolCommand;
 use Splicewire\Beam\Mcp\McpToolManifest;
@@ -34,6 +39,16 @@ class MakeMcpToolCommandTest extends TestCase
     private const COMMAND = 'splicewire:beam:mcp:make:tool';
 
     private string $host;
+
+    /**
+     * Plus laravel/mcp's own provider, which the package TestCase does not boot (testbench does not auto-discover).
+     * Its `registerContainerCallbacks()` is what hands a tool's `handle(Request $request)` the call's arguments; without
+     * it a `tools/call` reaches the handler with an empty request, and the calls below would prove nothing about them.
+     */
+    protected function getPackageProviders($app): array
+    {
+        return [...parent::getPackageProviders($app), McpServiceProvider::class];
+    }
 
     protected function setUp(): void
     {
@@ -256,6 +271,86 @@ class MakeMcpToolCommandTest extends TestCase
         $this->assertNotContains('gate-probe-tool', $this->listedBy($tool));
     }
 
+    // ── the declared output is what tools/call answers (make-surface 07 amend, Codex review 07) ─────
+
+    public function test_tools_call_on_a_generated_tool_returns_structured_content_matching_its_output_schema(): void
+    {
+        // Over the server's own message path, Server::handle() -> CallTool -> the JSON the transport is handed. A
+        // text-only answer passed every case above while contradicting the outputSchema the tool advertises.
+        $this->artisan(self::COMMAND, ['name' => 'ShapedProbeTool', '--group' => 'probe', '--ability' => 'probe.read'])
+            ->assertExitCode(0);
+
+        $tool = 'App\Mcp\Tools\ShapedProbeTool';
+        $granted = new class extends User {};
+
+        Gate::define('entitlement:probe.read', fn ($user = null) => $user === $granted);
+        $this->actAs($granted);
+
+        $result = $this->callOverTheWire($tool, ['placeholder' => 'shaped'])['result'] ?? null;
+
+        $this->assertIsArray($result, 'tools/call returned no result.');
+        $this->assertFalse($result['isError']);
+        $this->assertArrayHasKey('structuredContent', $result, 'tools/call answered with text only: no structuredContent for the declared outputSchema.');
+
+        // Judged against the tool's OWN declaration, as a client would read it from tools/list.
+        $schema = $this->app->make($tool)->toArray()['outputSchema'];
+        $structured = $result['structuredContent'];
+
+        $this->assertNotSame([], $schema['required'] ?? []);
+
+        foreach ($schema['required'] as $key) {
+            $this->assertArrayHasKey($key, $structured, "structuredContent lacks the required [{$key}].");
+        }
+
+        foreach ($schema['properties'] as $key => $property) {
+            if (array_key_exists($key, $structured) && ($property['type'] ?? null) === 'string') {
+                $this->assertIsString($structured[$key], "structuredContent [{$key}] is not the declared string.");
+            }
+        }
+
+        $this->assertSame([], array_diff_key($structured, $schema['properties']), 'structuredContent carries keys the outputSchema does not declare.');
+        $this->assertSame('shaped', $structured['result']);
+
+        // The text block carries the same object as JSON, for a client that reads only content.
+        $this->assertSame($structured, json_decode($result['content'][0]['text'], true));
+    }
+
+    public function test_tools_call_keeps_the_ability_refusal_and_reports_a_tool_error_as_is_error(): void
+    {
+        // A host Data stub whose shape has a required field, so a call without it cannot hydrate the input and the
+        // generated handler throws: the tool-error path. (An optional field coerces bad input to null instead.)
+        $this->publishDataStubWithARequiredField();
+
+        $this->artisan(self::COMMAND, ['name' => 'ErringProbeTool', '--group' => 'probe', '--ability' => 'probe.read'])
+            ->assertExitCode(0);
+
+        $tool = 'App\Mcp\Tools\ErringProbeTool';
+        $granted = new class extends User {};
+        $plain = new class extends User {};
+
+        Gate::define('entitlement:probe.read', fn ($user = null) => $user === $granted);
+
+        // Without the ability, tools/call is refused the way MCP refuses an absent tool.
+        $this->actAs($plain);
+        $refused = $this->callOverTheWire($tool, ['placeholder' => 'x']);
+
+        $this->assertSame(-32602, $refused['error']['code'] ?? null);
+        $this->assertArrayNotHasKey('result', $refused);
+
+        // With it, a handler that throws (input that cannot hydrate the declared Data) is a tool error, unshaped.
+        $this->actAs($granted);
+        $failed = $this->callOverTheWire($tool, ['placeholder' => 'no topic'])['result'] ?? [];
+
+        $this->assertTrue($failed['isError'] ?? false);
+        $this->assertArrayNotHasKey('structuredContent', $failed);
+
+        // And the same tool, given the field, answers in its declared shape.
+        $answered = $this->callOverTheWire($tool, ['topic' => 'mcp', 'placeholder' => 'with topic'])['result'] ?? [];
+
+        $this->assertFalse($answered['isError'] ?? true);
+        $this->assertSame(['result' => 'with topic'], $answered['structuredContent'] ?? null);
+    }
+
     // ── registration and formatting ─────────────────────────────────────────────────────────────────
 
     public function test_the_provider_registers_the_command_with_no_verify(): void
@@ -316,6 +411,23 @@ class MakeMcpToolCommandTest extends TestCase
         File::put($this->host.'/'.MakeMcpToolCommand::STUB, $edited);
     }
 
+    /** A host override of beam's Data stub (the companion this command writes) whose shape requires a `topic`. */
+    private function publishDataStubWithARequiredField(): void
+    {
+        $beamRoot = dirname((string) (new ReflectionClass(ParticleGeneratorCommand::class))->getFileName(), 3);
+        $stub = File::get($beamRoot.'/stubs/particle-data.stub');
+        $edited = str_replace(
+            '        // Replace with the fields this shape carries.',
+            '        public string $topic,',
+            $stub,
+        );
+
+        $this->assertNotSame($stub, $edited, "beam's Data stub no longer carries the line this test edits.");
+
+        File::ensureDirectoryExists($this->host.'/stubs');
+        File::put($this->host.'/stubs/particle-data.stub', $edited);
+    }
+
     private function actAs(mixed $actor): void
     {
         $this->app->instance(ActorPort::class, new class($actor) implements ActorPort
@@ -336,7 +448,67 @@ class MakeMcpToolCommandTest extends TestCase
      */
     private function listedBy(string $tool): array
     {
-        $server = new class(new FakeTransporter) extends Server
+        return $this->authorizedServer(new FakeTransporter, $tool)->createContext()->tools()->map(fn ($listed) => $listed->name())->values()->all();
+    }
+
+    /**
+     * One `tools/call` through the server's own message path (`Server::handle()`, the method the stdio and HTTP
+     * transports feed), returning the JSON-RPC message the transport was handed, decoded. A fresh server each call:
+     * `AuthorizesTools` narrows the mounted tools inside `createContext()`.
+     *
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    private function callOverTheWire(string $tool, array $arguments): array
+    {
+        $transport = new class implements Transport
+        {
+            /** @var list<string> */
+            public array $sent = [];
+
+            public function onReceive(Closure $handler): void {}
+
+            public function run()
+            {
+                return null;
+            }
+
+            public function send(string $message, ?string $sessionId = null): void
+            {
+                $this->sent[] = $message;
+            }
+
+            public function sessionId(): ?string
+            {
+                return 'ms07';
+            }
+
+            public function stream(Closure $stream): void
+            {
+                $stream();
+            }
+        };
+
+        $server = $this->authorizedServer($transport, $tool);
+        $server->start();
+        $server->handle((string) json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [
+            'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'ms07', 'version' => '0'],
+        ]]));
+        $server->handle((string) json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/call', 'params' => [
+            'name' => $this->app->make($tool)->name(), 'arguments' => $arguments,
+        ]]));
+
+        $answer = json_decode((string) end($transport->sent), true);
+
+        $this->assertSame(2, $answer['id'] ?? null, 'The server sent no answer to the tools/call.');
+
+        return $answer;
+    }
+
+    /** A server wired to the beam entitlement authorizer, mounting exactly `$tool`. */
+    private function authorizedServer(Transport $transport, string $tool): Server
+    {
+        $server = new class($transport) extends Server
         {
             use AuthorizesTools;
 
@@ -354,6 +526,6 @@ class MakeMcpToolCommandTest extends TestCase
             }
         };
 
-        return $server->mount([$tool])->createContext()->tools()->map(fn ($listed) => $listed->name())->values()->all();
+        return $server->mount([$tool]);
     }
 }

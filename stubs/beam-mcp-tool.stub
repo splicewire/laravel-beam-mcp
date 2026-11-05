@@ -6,6 +6,7 @@ use {{ namespacedInputClass }};
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Rushing\McpRegistry\Attributes\ToolAbility;
@@ -19,7 +20,9 @@ use Splicewire\Beam\Mcp\Shapes\DerivesInputSchemaFromData;
  *   - input:   {{ inputClass }}. DerivesInputSchemaFromData advertises its constructor as the tool's
  *              `inputSchema`, so this class writes no `schema()`: an override is what the MCP shape audit
  *              counts as a hand-authored input;
- *   - output:  `outputSchema()`. Describe what `handle()` returns; an inherited one is the audit's other half;
+ *   - output:  `outputSchema()`, and `handle()` answers in exactly that shape through `Response::structured()`
+ *              (sent as `structuredContent`, with the same object as JSON text). Change the two together; an
+ *              inherited `outputSchema()` is the audit's other half;
  *   - ability: #[ToolAbility]. A server using AuthorizesTools lists and calls the tool only for a caller
  *              granted the ability.
  *
@@ -34,12 +37,15 @@ class {{ class }} extends Tool
 {
     use DerivesInputSchemaFromData;
 
-    public function handle(Request $request): Response
+    public function handle(Request $request): ResponseFactory
     {
         // The advertised input schema is the Data class; hydrate it and do the work.
         $input = {{ inputClass }}::from($request->all());
 
-        return Response::text((string) $input->placeholder);
+        // The object outputSchema() declares, key for key.
+        return Response::structured([
+            'result' => (string) $input->placeholder,
+        ]);
     }
 
     protected function inputData(): string
