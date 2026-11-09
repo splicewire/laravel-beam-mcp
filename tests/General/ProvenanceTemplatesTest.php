@@ -8,6 +8,9 @@ use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
  * beside the current stub, so beam-ux's provenance backfill can recognise those rows as this package's and the next seed
  * re-asserts them (the integration is proven at a host that installs both, splicewire.test).
  */
+beforeEach(fn () => lockPublishedDocsStub());
+afterEach(fn () => releasePublishedDocsStub());
+
 test('the MCP page templates are the current stub and the prior one found on live rows', function () {
     @unlink(resource_path('beam-mcp/docs/mcp.mdx'));
     $templates = McpDocsSeeder::provenanceTemplates();
