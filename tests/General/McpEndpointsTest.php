@@ -10,8 +10,11 @@ use Splicewire\Beam\Mcp\Tests\Fixtures\GatedShopServer;
  * live hosts answered 404 there (`docs-known-dead.json`: beam.test, splicewire.test, app.splicewire.test).
  */
 beforeEach(function () {
+    lockPublishedDocsStub();
     config(['app.url' => 'https://host.test']);
 });
+
+afterEach(fn () => releasePublishedDocsStub());
 
 test('no mounted server says so, and prints no URL to copy', function () {
     $endpoints = app(McpEndpoints::class);

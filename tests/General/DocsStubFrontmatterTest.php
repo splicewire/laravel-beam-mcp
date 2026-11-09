@@ -23,6 +23,9 @@ function seedStub(string $frontmatter): array
     return $method->invoke($seeder);
 }
 
+beforeEach(fn () => lockPublishedDocsStub());
+afterEach(fn () => releasePublishedDocsStub());
+
 test('a host-published stub authored in camelCase lands in its snake column', function () {
     $stub = seedStub("title: MCP\nsegment: /mcp\nnavOrder: 5");
 
