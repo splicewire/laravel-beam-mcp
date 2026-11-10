@@ -41,6 +41,13 @@ class ReadConfigSectionsTool extends Tool
 {
     use DerivesInputSchemaFromData;
 
+    /**
+     * The public MCP name, explicit because the derived one (`read-config-sections-tool`, from the class name) would ship
+     * on a host's advertised catalog (`/docs/mcp`), an interface a host then has to keep. It follows the catalog's
+     * convention, a snake_case verb phrase (`search`, `list_silos`, `get_source`, `list_offers`).
+     */
+    protected string $name = 'read_config_sections';
+
     public function handle(Request $request, ConfigSectionAccess $access, ActorPort $actors): ResponseFactory
     {
         $input = ReadConfigSectionsInputData::from($request->all());

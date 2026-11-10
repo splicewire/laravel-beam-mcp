@@ -6,7 +6,7 @@ use Schemastud\DataSchemas\Attributes\Description;
 use Spatie\LaravelData\Data;
 
 /**
- * The declared input shape of the `read-config-sections` MCP tool. DerivesInputSchemaFromData advertises these
+ * The declared input shape of the `read_config_sections` MCP tool. DerivesInputSchemaFromData advertises these
  * constructor parameters as its `inputSchema`, and `handle()` hydrates this class from the request.
  * Scaffolded by `splicewire:beam:mcp:make:tool`.
  */
