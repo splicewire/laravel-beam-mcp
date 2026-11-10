@@ -24,7 +24,7 @@ use Splicewire\Beam\Mcp\Tests\TestCase;
 use Splicewire\Beam\Mcp\Tools\ReadConfigSectionsTool;
 
 /**
- * `read-config-sections` is `beam-config` over MCP, and only a transport: the gate and the rows are core's
+ * `read_config_sections` is `beam-config` over MCP, and only a transport: the gate and the rows are core's
  * {@see ConfigSectionAccess} (tested in beam core against the REST read it must match, and end to end at the host).
  * What this file pins is the tool's own contract: its declared shape, its ability, that it serves exactly the rows
  * core hands it, and that core's refusal reaches the caller as an MCP error rather than an empty answer.
@@ -119,6 +119,14 @@ class ReadConfigSectionsToolTest extends TestCase
         $reflection = new \ReflectionClass(ReadConfigSectionsTool::class);
         $this->assertSame(['entitlement:os.operate'], $reflection->getAttributes(ToolAbility::class)[0]->getArguments());
         $this->assertSame(['config'], $reflection->getAttributes(McpTool::class)[0]->getArguments());
+    }
+
+    public function test_its_public_name_is_explicit_and_follows_the_catalog_convention(): void
+    {
+        // The name ships on a host's advertised catalog (/docs/mcp), so it is declared, not derived from the class
+        // (which would give `read-config-sections-tool`), and is a snake_case verb phrase like the catalog's others.
+        $this->assertSame('read_config_sections', app(ReadConfigSectionsTool::class)->name());
+        $this->assertMatchesRegularExpression('/^[a-z]+(_[a-z]+)*$/', app(ReadConfigSectionsTool::class)->name());
     }
 
     public function test_it_serves_exactly_the_rows_core_reads_for_the_calling_actor(): void
