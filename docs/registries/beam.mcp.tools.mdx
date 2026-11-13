@@ -79,3 +79,5 @@ the same group again is skipped, so running discovery twice never lists a tool t
 
 The source is
 [`McpToolManifest`](https://github.com/splicewire/laravel-beam-mcp/blob/main/src/McpToolManifest.php).
+
+The host may explicitly expose the catalog through `McpRoutes::mount()` at `beam.mcp.api_root`; see the package API root contract. During expansion `manifest_uri` controls only the retained provider route, not that explicit mount.
