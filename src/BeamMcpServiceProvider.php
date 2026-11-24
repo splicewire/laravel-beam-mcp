@@ -5,8 +5,10 @@ namespace Splicewire\Beam\Mcp;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Rushing\Popcorn\Registries\Registrant;
+use Splicewire\Beam\Config\ConfigSectionRegistry;
 use Splicewire\Beam\Console\ParticleGeneratorCommand;
 use Splicewire\Beam\Doctor\BeamDoctorManifest;
+use Splicewire\Beam\Mcp\Config\BeamMcpSection;
 use Splicewire\Beam\Mcp\Console\MakeMcpToolCommand;
 use Splicewire\Beam\Mcp\Database\Seeders\McpDocsSeeder;
 use Splicewire\Beam\Mcp\Http\Controllers\McpManifestController;
@@ -36,6 +38,16 @@ class BeamMcpServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/beam/mcp.php', 'beam.mcp');
 
         $this->app->singleton(McpToolManifest::class);
+
+        // Declare the beam.mcp Config Section (ADR-0245). Register phase so the section is always
+        // present, independent of whether any MCP tool has been discovered or any route mounted.
+        $this->callAfterResolving(ConfigSectionRegistry::class, static function (ConfigSectionRegistry $sections): void {
+            $sections->section(
+                BeamMcpSection::class,
+                owner: 'splicewire/laravel-beam-mcp',
+                packageFile: __DIR__.'/../config/beam/mcp.php',
+            );
+        });
     }
 
     public function boot(): void
