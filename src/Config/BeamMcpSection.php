@@ -14,19 +14,19 @@ use Splicewire\Beam\Config\ConfigSection;
  *
  * Every key is deploy-only and not overridable until it is opted in.
  */
-#[ConfigRoot(root: 'beam.mcp', title: 'MCP server', description: 'How this install exposes Model Context Protocol tools and their catalog.')]
+#[ConfigRoot(root: 'beam.mcp', title: 'MCP server', description: 'Settings for sharing Model Context Protocol tools and publishing the tool catalog.')]
 class BeamMcpSection extends ConfigSection
 {
     public function __construct(
-        #[Title('MCP API path'), Description('The URL path prefix the MCP API is served under.'), ConfigKey(env: 'BEAM_MCP_API_ROOT')]
+        #[Title('MCP web address'), Description('The part of your site\'s web address where MCP requests are handled.'), ConfigKey(env: 'BEAM_MCP_API_ROOT')]
         public string $api_root,
-        #[Title('Tool classes'), Description('MCP tool classes to register directly, in addition to any found under the discovery paths.'), ConfigKey]
+        #[Title('Manually selected tools'), Description('Tools to make available alongside those found automatically.'), ConfigKey]
         public array $classes,
-        #[Title('Tool discovery paths'), Description('Directories scanned at startup for MCP tool classes to expose.'), ConfigKey]
+        #[Title('Tool folders'), Description('Folders to search for tools when the server starts.'), ConfigKey]
         public array $discover_paths,
-        #[Title('Catalog route'), Description('The read-only URL where the MCP tool catalog is published; leave empty to publish no catalog.'), ConfigKey(env: 'BEAM_MCP_MANIFEST_URI')]
+        #[Title('Tool catalog address'), Description('Where people can view the MCP tool catalog. Leave blank to keep the catalog unpublished.'), ConfigKey(env: 'BEAM_MCP_MANIFEST_URI')]
         public string $manifest_uri,
-        #[Title('Documentation'), Description('How the MCP documentation page is seeded.'), ConfigKey]
+        #[Title('Documentation'), Description('Settings for the MCP help page.'), ConfigKey]
         public BeamMcpDocsConfig $docs,
     ) {
     }

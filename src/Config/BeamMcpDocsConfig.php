@@ -13,7 +13,7 @@ use Splicewire\Beam\Config\Attributes\ConfigKey;
 class BeamMcpDocsConfig extends Data
 {
     public function __construct(
-        #[Title('Seed docs page'), Description('Whether to seed the MCP documentation page when the docs package is installed.'), ConfigKey(env: 'BEAM_MCP_SEED_DOCS')]
+        #[Title('Create the MCP help page'), Description('Create the MCP help page when the documentation package is installed.'), ConfigKey(env: 'BEAM_MCP_SEED_DOCS')]
         public bool|string $seed,
     ) {
     }
